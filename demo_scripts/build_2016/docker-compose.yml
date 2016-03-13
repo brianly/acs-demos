@@ -1,0 +1,13 @@
+analyzer:
+  image: rgardler/acs-logging-test-analyze
+  env_file:
+    - ./env.conf
+
+rest_enqueue:
+  image: rgardler/acs-logging-test-rest-enqueue
+  ports:
+    - "5000:5000"
+  env_file:
+    - ./env.conf
+
+
