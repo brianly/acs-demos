@@ -1,2 +1,7 @@
-# Emacs files*
+# Emacs files
 *~
+.#*
+*#~
+
+# Application config
+env.conf
