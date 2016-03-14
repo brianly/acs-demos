@@ -145,9 +145,22 @@ Others: 0
 
 The queue is now empty and the Info count has been increased.
 
+# Creating Load on the Application
 
+Using another container we will create load on the application. This
+will use Apache JMeter to simluate one hundred concurrent users with
+one thousand total requests. To do this we run:
 
+```
+docker run rgardler/acs-load http://172.17.0.1:5000/enqueue -t 100 -l 100 -d "queue=rgbuildacsdemo&message=INFO%20-%20Hello%20Build."
+```
 
+This will take a little while to run, but we can inspect the queue
+while it is happening:
+
+```
+docker run --env-file env.conf rgardler/acs-logging-test-cli summary
+```
 
 
 
