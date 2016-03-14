@@ -162,8 +162,114 @@ while it is happening:
 docker run --env-file env.conf rgardler/acs-logging-test-cli summary
 ```
 
+# Scaling up in Response to a Growing Queue
 
+Now that the queue is growing a single analyzer is not going to be
+enough, so lets scale the analyzers up.
 
+```
+docker-compose scale analyzer=10
+```
+
+Results:
+
+```
+Creating and starting 3 ...
+Creating and starting 4 ...
+Creating and starting 5 ...
+Creating and starting 6 ...
+Creating and starting 7 ...
+Creating and starting 8 ...
+Creating and starting 9 ...
+Creating and starting 10 ...
+Creating and starting 2 ... done
+Creating and starting 7 ... done
+Creating and starting 3 ... done
+Creating and starting 6 ... done
+Creating and starting 8 ... done
+Creating and starting 4 ... done
+Creating and starting 10 ... done
+Creating and starting 5 ... done
+Creating and starting 9 ... done
+```
+
+Now we have 10 analyzers, at least until the queue hits zero, then
+they will start to shutdown. You can check the status of your
+containers with:
+
+```
+docker-compose ps
+```
+
+Results:
+
+```
+              Name                        Command           State            Ports
+-------------------------------------------------------------------------------------------
+build2016_analyzer_1               python src/analyzer.py   Up
+build2016_analyzer_10              python src/analyzer.py   Up
+build2016_analyzer_2               python src/analyzer.py   Exit 0
+build2016_analyzer_3               python src/analyzer.py   Exit 0
+build2016_analyzer_4               python src/analyzer.py   Exit 0
+build2016_analyzer_5               python src/analyzer.py   Exit 0
+build2016_analyzer_6               python src/analyzer.py   Exit 0
+build2016_analyzer_7               python src/analyzer.py   Exit 0
+build2016_analyzer_8               python src/analyzer.py   Exit 0
+build2016_analyzer_9               python src/analyzer.py   Exit 0
+build2016_frontoffice_qna_rest_1   catalina.sh run          Up       0.0.0.0:8080->8080/tcp
+build2016_frontoffice_qna_web_1    apache2-foreground       Up       0.0.0.0:80->80/tcp
+build2016_rest_enqueue_1           python src/server.py     Up       0.0.0.0:5000->5000/tcp
+```
+
+# Autoscaling Containers
+
+We don't really want to be scaling the application up manually like
+this, we want it to happen automatically. So lets create a script to
+handle this scaling. This script will query the length of the queue
+and will start up a number of analyzer containers proportional to the
+queue lentgh. When the queue hits zero the analyzers will start to
+shut down.
+
+Results:
+
+```
+ANALYZERS=1
+MAX_ANALYZERS=75
+
+LENGTH=$(docker run -i --env-file env.conf rgardler/acs-logging-test-cli length)
+
+if [ "$LENGTH" -gt 100 ]; then
+    NUM_ANALYZERS=$(expr $LENGTH / 100)
+    if [ "$NUM_ANALYZERS" -gt "$MAX_ANALYZERS" ]; then
+	NUM_ANALYZERS=$MAX_ANALYZERS
+    fi
+    docker-compose scale analyzer=$NUM_ANALYZERS
+fi
+```
+
+To see this in action we will want to generate traffic against our
+application and then run the autoscale once there has been a chance
+for the queue to grow.
+
+```
+docker run rgardler/acs-load http://172.17.0.1:5000/enqueue -t 1000 -l 100 -d "queue=rgbuildacsdemo&message=INFO%20-%20Hello%20Build." &
+sleep 10
+./autoscale.sh
+```
+
+Results:
+
+```
+Starting build2016_analyzer_1 ... done
+Starting build2016_analyzer_2 ... done
+Starting build2016_analyzer_3 ... done
+Starting build2016_analyzer_4 ... done
+Starting build2016_analyzer_5 ... done
+Starting build2016_analyzer_6 ... done
+Starting build2016_analyzer_7 ... done
+Starting build2016_analyzer_8 ... done
+Starting build2016_analyzer_9 ... done
+```
 
 
 
