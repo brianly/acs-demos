@@ -1,3 +1,15 @@
+frontoffice_qna_web:
+  image: adtd/web_qna
+  ports:
+    - "80:80"
+  links:
+    - frontoffice_qna_rest:rest-demo-azure.marathon.mesos
+
+frontoffice_qna_rest:
+  image: adtd/rest_qna
+  ports:
+    - "8080:8080"
+
 analyzer:
   image: rgardler/acs-logging-test-analyze
   env_file:
@@ -9,5 +21,3 @@ rest_enqueue:
     - "5000:5000"
   env_file:
     - ./env.conf
-
-
