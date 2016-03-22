@@ -1,14 +1,21 @@
 #!/bin/bash
 
 ANALYZERS=1
-MAX_ANALYZERS=75
+MAX_ANALYZERS=50
 
 LENGTH=$(docker run -i --env-file env.conf rgardler/acs-logging-test-cli length)
 
-if [ "$LENGTH" -gt 50 ]; then
-    NUM_ANALYZERS=$(expr $LENGTH / 100)
-    if [ "$NUM_ANALYZERS" -gt "$MAX_ANALYZERS" ]; then
-	NUM_ANALYZERS=$MAX_ANALYZERS
-    fi
-    docker-compose scale analyzer=$NUM_ANALYZERS
+docker run --env-file env.conf rgardler/acs-logging-test-cli summary
+
+echo ""
+
+
+NUM_ANALYZERS=$(expr $LENGTH / 10)
+if [ "$NUM_ANALYZERS" -gt "$MAX_ANALYZERS" ]; then
+    NUM_ANALYZERS=$MAX_ANALYZERS
 fi
+echo "Setting analyzer scale to $NUM_ANALYZERS"
+docker-compose scale analyzer=$NUM_ANALYZERS > /dev/null
+
+
+docker-compose ps

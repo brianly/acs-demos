@@ -68,7 +68,7 @@ The "rest_enqueue" container provides a REST API for writing events to
 the queue, so lets write one:
 
 ```
-curl -X POST -d queue=rgacsbuilddemo -d message="INFO - Hello world!" http://localhost:5000/enqueue
+curl -X POST -d queue=rgbuildacsdemo -d message="Demo - Hello world!" http://localhost:5000/enqueue
 ```
 
 Results:
@@ -110,7 +110,7 @@ analyzers when necessary. For now lets start an analyzer manually to
 see what happens.
 
 ```
-docker-compose up
+docker-compose up -d
 ```
 
 Results:
@@ -152,7 +152,10 @@ will use Apache JMeter to simluate one hundred concurrent users with
 one thousand total requests. To do this we run:
 
 ```
-docker run rgardler/acs-load http://172.17.0.1:5000/enqueue -t 100 -l 100 -d "queue=rgbuildacsdemo&message=INFO%20-%20Hello%20Build."
+docker run -d rgardler/acs-load http://172.17.0.1:5000/enqueue -t 100 -l 100 -d "queue=rgbuildacsdemo&message=CORRECT%20-%20Question_1 - Answer_A" &
+docker run -d rgardler/acs-load http://172.17.0.1:5000/enqueue -t 100 -l 5 -d "queue=rgbuildacsdemo&message=INCORRECT%20-%20Question_1 - Answer_B" & 
+docker run -d rgardler/acs-load http://172.17.0.1:5000/enqueue -t 100 -l 7 -d "queue=rgbuildacsdemo&message=INCORRECT%20-%20Question_1 - Answer_C" & 
+docker run -d rgardler/acs-load http://172.17.0.1:5000/enqueue -t 100 -l 1 -d "queue=rgbuildacsdemo&message=INCORRECT%20-%20Question_1 - Answer_" &
 ```
 
 This will take a little while to run, but we can inspect the queue
@@ -233,18 +236,27 @@ shut down.
 Results:
 
 ```
+#!/bin/bash
+
 ANALYZERS=1
-MAX_ANALYZERS=75
+MAX_ANALYZERS=50
 
 LENGTH=$(docker run -i --env-file env.conf rgardler/acs-logging-test-cli length)
 
-if [ "$LENGTH" -gt 100 ]; then
-    NUM_ANALYZERS=$(expr $LENGTH / 100)
-    if [ "$NUM_ANALYZERS" -gt "$MAX_ANALYZERS" ]; then
-	NUM_ANALYZERS=$MAX_ANALYZERS
-    fi
-    docker-compose scale analyzer=$NUM_ANALYZERS
+docker run --env-file env.conf rgardler/acs-logging-test-cli summary
+
+echo ""
+
+
+NUM_ANALYZERS=$(expr $LENGTH / 10)
+if [ "$NUM_ANALYZERS" -gt "$MAX_ANALYZERS" ]; then
+    NUM_ANALYZERS=$MAX_ANALYZERS
 fi
+echo "Setting analyzer scale to $NUM_ANALYZERS"
+docker-compose scale analyzer=$NUM_ANALYZERS > /dev/null
+
+
+docker-compose ps
 ```
 
 To see this in action we will want to generate traffic against our
@@ -252,24 +264,29 @@ application and then run the autoscale once there has been a chance
 for the queue to grow.
 
 ```
-docker run rgardler/acs-load http://172.17.0.1:5000/enqueue -t 1000 -l 100 -d "queue=rgbuildacsdemo&message=INFO%20-%20Hello%20Build." &
-sleep 10
-./autoscale.sh
+docker run -d rgardler/acs-load http://172.17.0.1:5000/enqueue -t 100 -l 100 -d "queue=rgbuildacsde\
+mo&message=CORRECT%20-%20Question_1 - Answer_A" &
+docker run -d rgardler/acs-load http://172.17.0.1:5000/enqueue -t 100 -l 5 -d "queue=rgbuildacsdemo\
+&message=INCORRECT%20-%20Question_1 - Answer_B" &
+docker run -d rgardler/acs-load http://172.17.0.1:5000/enqueue -t 100 -l 7 -d "queue=rgbuildacsdemo\
+&message=INCORRECT%20-%20Question_1 - Answer_C" &
+docker run -d rgardler/acs-load http://172.17.0.1:5000/enqueue -t 100 -l 1 -d "queue=rgbuildacsdemo\
+&message=INCORRECT%20-%20Question_1 - Answer_" &
+watch ./autoscale.sh
 ```
 
 Results:
 
 ```
-Starting build2016_analyzer_1 ... done
-Starting build2016_analyzer_2 ... done
-Starting build2016_analyzer_3 ... done
-Starting build2016_analyzer_4 ... done
-Starting build2016_analyzer_5 ... done
-Starting build2016_analyzer_6 ... done
-Starting build2016_analyzer_7 ... done
-Starting build2016_analyzer_8 ... done
-Starting build2016_analyzer_9 ... done
-```
+Every 2.0s: ./autoscale.sh                                                Tue Mar 22 00:59:33 2016
 
-
+Queue Length: 4
+              Name                        Command           State            Ports
+-------------------------------------------------------------------------------------------
+build2016_analyzer_1               python src/analyzer.py   Exit 0
+build2016_analyzer_2               python src/analyzer.py   Exit 0
+build2016_analyzer_3               python src/analyzer.py   Exit 0
+build2016_frontoffice_qna_rest_1   catalina.sh run          Up       0.0.0.0:8080->8080/tcp
+build2016_frontoffice_qna_web_1    apache2-foreground       Up       0.0.0.0:80->80/tcp
+build2016_rest_enqueue_1           python src/server.py     Up       0.0.0.0:5000->5000/tcpStarting```
 
