@@ -1,0 +1,105 @@
+{
+  "id": "acs",
+  "groups": [
+    {
+      "apps": [
+        {
+          "id": "web-qna",
+          "cpus": 0.2,
+          "mem": 200,
+          "instances": 1,
+          "ports": [
+            80
+          ],
+          "requirePorts": true,
+          "container": {
+            "docker": {
+              "image": "adtd/web_qna:build2016",
+              "network": "HOST",
+              "forcePullImage": true
+            },
+            "type": "DOCKER"
+          },
+          "dependencies": [
+            "/azure/demo/rest"
+          ]
+        },
+        {
+          "id": "rest-qna",
+          "cpus": 0.5,
+          "mem": 500,
+          "instances": 1,
+          "ports": [
+            8080
+          ],
+          "requirePorts": true,
+          "container": {
+            "docker": {
+              "image": "adtd/rest_qna:build2016",
+              "network": "HOST",
+              "forcePullImage": true
+            },
+            "type": "DOCKER"
+          }
+        },
+        {
+          "id": "analyzer",
+          "cpus": 0.1,
+          "mem": 200,
+          "instances": 1,
+	  "env": {
+	      "SIMULATION_ACTIONS":"0",
+	      "SIMULATION_DELAY":"0", 
+	      "AZURE_LOGGING_QUEUE_TYPE":"AzureStorageQueue",
+	      "AZURE_STORAGE_QUEUE_NAME":"rgbuildacsdemo",
+	      "AZURE_STORAGE_SUMMARY_TABLE_NAME":"rgbuildacsdemo",
+	      "AZURE_STORAGE_ACCOUNT_NAME":"acstests",
+	      "AZURE_STORAGE_ACCOUNT_KEY":"QKZXf0fxnKVdsFdGor3jVkUIsBZ6/X7CTAnvYQ8jrFEB71k8h49cfPhK+9Noju9T/nMy7nqvgqksEqTJfE2nng==",
+              "SLACK_WEBHOOK":"https://hooks.slack.com/services/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$"
+          },
+          "container": {
+            "docker": {
+              "image": "rgardler/acs-logging-test-analyze:build2016",
+              "network": "HOST",
+              "forcePullImage": true
+            },
+            "type": "DOCKER"
+          },
+	  "backoffSeconds": 1,
+	  "backoffFactor": 1.15,
+	  "maxLaunchDelaySeconds": 10
+        },
+        {
+          "id": "rest-enqueue",
+          "cpus": 0.2,
+          "mem": 200,
+          "instances": 1,
+          "ports": [
+            5000
+          ],
+          "requirePorts": true,
+	  "env": {
+	      "SIMULATION_ACTIONS":"0",
+	      "SIMULATION_DELAY":"0", 
+	      "AZURE_LOGGING_QUEUE_TYPE":"AzureStorageQueue",
+	      "AZURE_STORAGE_QUEUE_NAME":"rgbuildacsdemo",
+	      "AZURE_STORAGE_SUMMARY_TABLE_NAME":"rgbuildacsdemo",
+	      "AZURE_STORAGE_ACCOUNT_NAME":"acstests",
+	      "AZURE_STORAGE_ACCOUNT_KEY":"QKZXf0fxnKVdsFdGor3jVkUIsBZ6/X7CTAnvYQ8jrFEB71k8h49cfPhK+9Noju9T/nMy7nqvgqksEqTJfE2nng==",
+              "SLACK_WEBHOOK":"https://hooks.slack.com/services/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$"
+          },
+          "container": {
+            "docker": {
+              "image": "rgardler/acs-logging-test-rest-enqueue:build2016",
+              "network": "HOST",
+              "forcePullImage": true
+            },
+            "type": "DOCKER"
+          }
+        }
+      ],
+      "id": "build2016"
+    }
+  ]
+}
+
