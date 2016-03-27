@@ -1,12 +1,14 @@
 This demo uses many different containers to provide a complete
-end-to-end solution.
+end-to-end solution. We'll start by deploying the complete application
+in a dev/test environment and examining how that works. Then we'll add
+some load testing and examine techniques for scaling. Finally, we'll
+move the application into "production".
 
-# Deploying the application
+# Introducing the application
 
 Because this is a complex application we need to use docker-compose or
 Marathon to deploy and manage it in a runtime environment.
 
-Let's start with the Swarm version.
 
 ```
 docker-compose up -d
@@ -39,7 +41,7 @@ to do, if it finds none it will shutdown. Since there is nothing in
 the queue (assuming you started with a new queue) the anlyzer will
 startup but immediately shut down.
 
-# Working with the Message Queue
+# Examining the Message Queue
 
 Lets have a look at the queue and summary table: which is updated by
 the analyzer container. The following command will print out the
@@ -103,7 +105,7 @@ Debugs: 0
 Others: 0
 ```
 
-# Starting Analyzers
+# Processing the Queue
 
 Our application will have some kind of logic within it that will start
 analyzers when necessary. For now lets start an analyzer manually to
@@ -224,9 +226,9 @@ build2016_frontoffice_qna_web_1    apache2-foreground       Up       0.0.0.0:80-
 build2016_rest_enqueue_1           python src/server.py     Up       0.0.0.0:5000->5000/tcp
 ```
 
-# Deploying to Azure Container Service
+# Running on Azure Container Service (Docker Swarm)
 
-In order to deploy these applictions to Swarm on ACS all you need to
+In order to deploy the application to Swarm on ACS all you need to
 do is:
 
   * Create an ACS cluster using the Swarm Orchestrator
@@ -310,28 +312,6 @@ From this point forwards all of our Docker commands will be run
 against the Swarm cluster. If you use `docker ps` you will be able to
 see which agent node they are deployed to.
 
-# Deploying to Production
-
-Make your containers available in the Docker Hub (or a private Docker
-Registry). First we want to tag the images, ready for our production
-environment.
-
-```
-docker tag adtd/rest_qna adtd/rest_qna:build2016
-docker tag adtd/web_qna adtd/web_qna:build2016
-docker tag rgardler/acs-logging-test-analyze rgardler/acs-logging-test-analyze:build2016
-docker tag rgardler/acs-logging-test-rest-enqueue rgardler/acs-logging-test-rest-enqueue:build2016
-```
-
-Once tagged we an push them to our Docker Registry:
-
-```
-docker push adtd/rest_qna:build2016
-docker push adtd/web_qna:build2016
-docker push rgardler/acs-logging-test-analyze:build2016
-docker push rgardler/acs-logging-test-rest-enqueue:build2016[
-```
-
 # Autoscaling Containers
 
 We don't really want to be scaling the application up manually like
@@ -354,7 +334,6 @@ LENGTH=$(docker run -i --env-file env.conf rgardler/acs-logging-test-cli length)
 docker run --env-file env.conf rgardler/acs-logging-test-cli summary
 
 echo ""
-
 
 NUM_ANALYZERS=$(expr $LENGTH / 10)
 if [ "$NUM_ANALYZERS" -gt "$MAX_ANALYZERS" ]; then
@@ -398,7 +377,29 @@ build2016_frontoffice_qna_rest_1   catalina.sh run          Up       0.0.0.0:808
 build2016_frontoffice_qna_web_1    apache2-foreground       Up       0.0.0.0:80->80/tcp
 build2016_rest_enqueue_1           python src/server.py     Up       0.0.0.0:5000->5000/tcpStartin```
 
-# Deploying to Production
+# Publishing to Docker Hub or a Private registry
+
+Make your containers available in the Docker Hub (or a private Docker
+Registry). First we want to tag the images, ready for our production
+environment.
+
+```
+docker tag adtd/rest_qna adtd/rest_qna:build2016
+docker tag adtd/web_qna adtd/web_qna:build2016
+docker tag rgardler/acs-logging-test-analyze rgardler/acs-logging-test-analyze:build2016
+docker tag rgardler/acs-logging-test-rest-enqueue rgardler/acs-logging-test-rest-enqueue:build2016
+```
+
+Once tagged we can push them to our Docker Registry:
+
+```
+docker push adtd/rest_qna:build2016
+docker push adtd/web_qna:build2016
+docker push rgardler/acs-logging-test-analyze:build2016
+docker push rgardler/acs-logging-test-rest-enqueue:build2016[
+```
+
+# Deploying to Production on Azure Container Service (Apache Mesos)
 
 So far we have been using the Docker native stack to host our Docker
 containers. However, because of the protability of Docker images we
@@ -414,7 +415,34 @@ to do is:
   * Open an SSH Tunnel to the Mesos admin router
   * Use the Marathon REST API to deploy the application
 
-The commands to do this are (assuming Azure CLI is installed):
+## Create an ACS Cluster (Apache Mesos)
+
+To create a Mesos version of ACS using the CLI you need to provide a
+small number of parameters for the ARM template:
+
+`
+{
+  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "dnsNamePrefix": {
+      "value": "acsmesosbuild2016"
+    },
+    "agentCount": {
+      "value": 3
+    },
+    "linuxAdminUsername": {
+      "value": "azureuser"
+    }
+    "masterCount": {
+      "value": 3
+    },
+    "sshRSAPublicKey": {
+      "value": "ssh-rsa AAAAB3Nz...snip...oc/UcyupgH azureuser@linuxvm"
+    }
+  }
+}
+`
 
 ```
 azure login -u rogardle@microsoft.com
@@ -441,7 +469,110 @@ To deploy to a Mesos cluster we need a marthon.json file. So here it
 is:
 
 ```
-FIXME: Insert working marathon.json file
+{
+  "id": "acs",
+  "groups": [
+    {
+      "apps": [
+        {
+          "id": "web-qna",
+          "cpus": 0.2,
+          "mem": 200,
+          "instances": 1,
+          "ports": [
+            80
+          ],
+          "requirePorts": true,
+          "container": {
+            "docker": {
+              "image": "adtd/web_qna:build2016",
+              "network": "HOST",
+              "forcePullImage": true
+            },
+            "type": "DOCKER"
+          },
+          "dependencies": [
+            "/azure/demo/rest"
+          ]
+        },
+        {
+          "id": "rest-qna",
+          "cpus": 0.5,
+          "mem": 500,
+          "instances": 1,
+          "ports": [
+            8080
+          ],
+          "requirePorts": true,
+          "container": {
+            "docker": {
+              "image": "adtd/rest_qna:build2016",
+              "network": "HOST",
+              "forcePullImage": true
+            },
+            "type": "DOCKER"
+          }
+        },
+        {
+          "id": "analyzer",
+          "cpus": 0.1,
+          "mem": 200,
+          "instances": 1,
+	  "env": {
+	      "SIMULATION_ACTIONS":"0",
+	      "SIMULATION_DELAY":"0", 
+	      "AZURE_LOGGING_QUEUE_TYPE":"AzureStorageQueue",
+	      "AZURE_STORAGE_QUEUE_NAME":"rgbuildacsdemo",
+	      "AZURE_STORAGE_SUMMARY_TABLE_NAME":"rgbuildacsdemo",
+	      "AZURE_STORAGE_ACCOUNT_NAME":"acstests",
+	      "AZURE_STORAGE_ACCOUNT_KEY":"QKZXf0fxnKVdsFdGor3jVkUIsBZ6/X7CTAnvYQ8jrFEB71k8h49cfPhK+9Noju9T/nMy7nqvgqksEqTJfE2nng==",
+              "SLACK_WEBHOOK":"https://hooks.slack.com/services/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$"
+          },
+          "container": {
+            "docker": {
+              "image": "rgardler/acs-logging-test-analyze:build2016",
+              "network": "HOST",
+              "forcePullImage": true
+            },
+            "type": "DOCKER"
+          },
+	  "backoffSeconds": 1,
+	  "backoffFactor": 1.15,
+	  "maxLaunchDelaySeconds": 10
+        },
+        {
+          "id": "rest-enqueue",
+          "cpus": 0.2,
+          "mem": 200,
+          "instances": 1,
+          "ports": [
+            5000
+          ],
+          "requirePorts": true,
+	  "env": {
+	      "SIMULATION_ACTIONS":"0",
+	      "SIMULATION_DELAY":"0", 
+	      "AZURE_LOGGING_QUEUE_TYPE":"AzureStorageQueue",
+	      "AZURE_STORAGE_QUEUE_NAME":"rgbuildacsdemo",
+	      "AZURE_STORAGE_SUMMARY_TABLE_NAME":"rgbuildacsdemo",
+	      "AZURE_STORAGE_ACCOUNT_NAME":"acstests",
+	      "AZURE_STORAGE_ACCOUNT_KEY":"QKZXf0fxnKVdsFdGor3jVkUIsBZ6/X7CTAnvYQ8jrFEB71k8h49cfPhK+9Noju9T/nMy7nqvgqksEqTJfE2nng==",
+              "SLACK_WEBHOOK":"https://hooks.slack.com/services/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$"
+          },
+          "container": {
+            "docker": {
+              "image": "rgardler/acs-logging-test-rest-enqueue:build2016",
+              "network": "HOST",
+              "forcePullImage": true
+            },
+            "type": "DOCKER"
+          }
+        }
+      ],
+      "id": "build2016"
+    }
+  ]
+}
 ```
 
 Notice how we configure the environment for the containers, this
@@ -512,7 +643,7 @@ this with our CLI tool:
 docker run --env-file env.conf rgardler/acs-logging-test-cli summary
 ```
 
-Once again, whn the queue reaches zero unprocessed messages the
+Once again, when the queue reaches zero unprocessed messages the
 analyzers will start to shut down. However, with the current setup
 Marathon will continue to try to restart them. This is OK, since they
 start and stop very quickly.
