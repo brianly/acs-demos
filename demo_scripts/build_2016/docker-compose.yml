@@ -1,5 +1,5 @@
 web:
-  image: rgardler/acs-logging-test-analyze:build2016
+  image: rgardler/acs-logging-test-web:build2016
   ports:
     - "80:80"
   env_file:
