@@ -9,13 +9,28 @@ then
     exit 1
 fi
 
-# Stop and remove any containers related to this demo
+echo
+echo "Stop and remove any containers related to this demo"
 docker-compose stop
 docker-compose rm -f
 
-# Delete and recrete the queue and table to ensure they are empty
-docker run --env-file env.conf rgardler/acs-logging-test-cli deleteQueue
-docker run --env-file env.conf rgardler/acs-logging-test-cli deleteTable
-docker run --env-file env.conf rgardler/acs-logging-test-cli createQueue
-docker run --env-file env.conf rgardler/acs-logging-test-cli createTable
+echo
+echo "Pre-pull the images to ensure a fast startup in the demo"
+docker-compose pull
+
+echo
+echo "Delete and recreate the queue and table to ensure they are empty"
+docker run --env-file env.conf rgardler/acs-logging-test-cli:swarmautoscale deleteQueue
+docker run --env-file env.conf rgardler/acs-logging-test-cli:swarmautoscale deleteTable
+docker run --env-file env.conf rgardler/acs-logging-test-cli:swarmautoscale createQueue
+docker run --env-file env.conf rgardler/acs-logging-test-cli:swarmautoscale createTable
+
+echo
+echo "Sleep long enough to ensure the table and queue have been created (15 seconds)"
+sleep 15
+
+echo
+echo "Deploy the application on the Mesos cluster"
+curl -X PUT http://localhost/marathon/v2/groups -d @marathon.json -H "Content-type: application/json"
+
 
