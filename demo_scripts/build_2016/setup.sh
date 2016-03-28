@@ -20,10 +20,10 @@ docker-compose pull
 
 echo
 echo "Delete and recreate the queue and table to ensure they are empty"
-docker run --env-file env.conf rgardler/acs-logging-test-cli:swarmautoscale deleteQueue
-docker run --env-file env.conf rgardler/acs-logging-test-cli:swarmautoscale deleteTable
-docker run --env-file env.conf rgardler/acs-logging-test-cli:swarmautoscale createQueue
-docker run --env-file env.conf rgardler/acs-logging-test-cli:swarmautoscale createTable
+docker run --env-file env.conf rgardler/acs-logging-test-cli:build2016 deleteQueue
+docker run --env-file env.conf rgardler/acs-logging-test-cli:build2016 deleteTable
+docker run --env-file env.conf rgardler/acs-logging-test-cli:build2016 createQueue
+docker run --env-file env.conf rgardler/acs-logging-test-cli:build2016 createTable
 
 echo
 echo "Sleep long enough to ensure the table and queue have been created (15 seconds)"
