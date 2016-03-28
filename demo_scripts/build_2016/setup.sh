@@ -39,7 +39,7 @@ export DOCKER_HOST=:2375
 
 echo
 echo "Open SSH tunnel to swarm cluster"
-ssh -L 2375:localhost:2375 -N azureuser@coreyacsbuildmgmt.westus.cloudapp.azure.com -p 2200 &
+ssh -A -L 2375:localhost:2375 azureuser@acsswarmbuild2016mgmt.westus.cloudapp.azure.com -p 2200
 
 cleanDocker
 
