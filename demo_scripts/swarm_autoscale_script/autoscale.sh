@@ -3,18 +3,16 @@
 # Demonstrate the scaling up and down of analysers in response to the
 # length of the queue.
 
-SCALE_SET_NAME=swarm-agent-94077C7vmss-0
-
 PRODUCERS=1
 MAX_PRODUCERS=20
 ANALYZERS=1
 MAX_ANALYZERS=50
 
 STATUS_REPEATS=3
-STATUS_DELAY=5
+STATUS_DELAY=3
 
 CONTAINER_SCALE_REPEATS=5
-CONTAINER_SCALE_DELAY=5
+CONTAINER_SCALE_DELAY=3
 
 clear
 echo "Starting $PRODUCERS producer and $ANALYZERS analyzer"
@@ -33,12 +31,16 @@ echo "Output the status of the queue every $STATUS_DELAY seconds"
 echo "======================================================================================="
 for i in $(seq "$STATUS_REPEATS")
 do
+    echo "Queue Status"
+    echo "============"
     docker run -it --env-file env.conf rgardler/acs-logging-test-cli summary
-    echo ""
+    echo "Container Status"
+    echo "================"
     docker-compose ps
     echo "======================================================================================="
     echo ""
     sleep $STATUS_DELAY
+    clear
 done
 
 echo "Notice how the queue is starting to grow again"
@@ -59,15 +61,18 @@ do
 	then
 	    NUM_ANALYZERS=$MAX_ANALYZERS
 	fi
-	echo "Scaling to $NUM_ANALYZERS"
+	echo "docker-compose scale analyzer=$NUM_ANALYZERS"
 	docker-compose scale analyzer=$NUM_ANALYZERS
     else 
 	echo "Queue is an acceptable length ($length)"
     fi
+    echo "Container Status"
+    echo "================"
     docker-compose ps
     echo "======================================================================================="
     echo ""
     sleep $CONTAINER_SCALE_DELAY
+    clear
 done
 
 echo "That's all for our demo just now..."
