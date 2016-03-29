@@ -46,7 +46,7 @@ done
 echo "Notice how the queue is growing, we don't have enough analyzers to keep up with the work"
 echo "Lets implement a scaling algorithm, this is a simpl shell script we will run periodically"
 echo ""
-echo <<< EOF
+echo << EOF
     NUM_ANALYZERS=$(expr $LENGTH / 10)
     if [ "$NUM_ANALYZERS" -gt "$MAX_ANALYZERS" ]
     then
@@ -65,6 +65,7 @@ do
 
     LENGTH=$(docker run -i --env-file env.conf rgardler/acs-logging-test-cli length)
     echo "Queue is approximately $LENGTH message in length"
+    echo ""
 
     NUM_ANALYZERS=$(expr $LENGTH / 10)
     if [ "$NUM_ANALYZERS" -gt "$MAX_ANALYZERS" ]
