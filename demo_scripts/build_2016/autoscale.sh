@@ -7,6 +7,7 @@ LENGTH=$(docker run -i --env-file env.conf rgardler/acs-logging-test-cli length)
 
 docker run --env-file env.conf rgardler/acs-logging-test-cli summary
 
+echo "Approximate queue length is " $LENGTH
 echo ""
 
 
