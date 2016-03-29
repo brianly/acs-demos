@@ -43,7 +43,18 @@ do
     clear
 done
 
-echo "Notice how the queue is starting to grow again"
+echo "Notice how the queue is growing, we don't have enough analyzers to keep up with the work"
+echo "Lets implement a scaling algorithm, this is a simpl shell script we will run periodically"
+echo ""
+echo <<< EOF
+    NUM_ANALYZERS=$(expr $LENGTH / 10)
+    if [ "$NUM_ANALYZERS" -gt "$MAX_ANALYZERS" ]
+    then
+	NUM_ANALYZERS=$MAX_ANALYZERS
+    fi
+    docker-compose scale analyzer=$NUM_ANALYZERS
+EOF
+echo ""
 read -p "Press [Enter] key to turn on an auto-scaling algorithm"
 clear 
 
@@ -53,23 +64,16 @@ do
     echo "============"
 
     LENGTH=$(docker run -i --env-file env.conf rgardler/acs-logging-test-cli length)
+    echo "Queue is approximately $LENGTH message in length"
 
-    if [ "$LENGTH" -gt 50 ]
+    NUM_ANALYZERS=$(expr $LENGTH / 10)
+    if [ "$NUM_ANALYZERS" -gt "$MAX_ANALYZERS" ]
     then
-	echo "Queue is too long ($LENGTH)"
-	echo ""
-
-	NUM_ANALYZERS=$(expr $LENGTH / 10)
-	if [ "$NUM_ANALYZERS" -gt "$MAX_ANALYZERS" ]
-	then
-	    NUM_ANALYZERS=$MAX_ANALYZERS
-	fi
-	echo "docker-compose scale analyzer=$NUM_ANALYZERS"
-	docker-compose scale analyzer=$NUM_ANALYZERS
-	echo ""
-    else 
-	echo "Queue is an acceptable length ($length)"
+	NUM_ANALYZERS=$MAX_ANALYZERS
     fi
+    echo "docker-compose scale analyzer=$NUM_ANALYZERS"
+    docker-compose scale analyzer=$NUM_ANALYZERS
+    echo ""
     echo "Container Status"
     echo "================"
     docker-compose ps
