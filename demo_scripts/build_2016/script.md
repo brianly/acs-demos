@@ -70,7 +70,7 @@ The "rest_enqueue" container provides a REST API for writing events to
 the queue, so lets write one:
 
 ```
-curl -X POST -d queue=rgbuildacsdemo -d message="Demo - Hello world!" http://localhost:5000/enqueue
+curl -X POST -d queue=rgbuildacsdemo -d message="Demo - Hello world!" http://172.17.0.1:5000/enqueue
 ```
 
 Results:
@@ -250,7 +250,7 @@ variable so that we don't need to explicitly tell the Docker CLI to
 use our cluster on every command.
 
 ```
-ssh -A -L 2375:localhost:2375 azureuser@acsswarmbuild2016mgmt.westus.cloudapp.azure.com -p 2200
+ssh -A -L 2375:localhost:2375 -N azureuser@acsswarmbuild2016mgmt.westus.cloudapp.azure.com -p 2200 &
 export DOCKER_HOST=:2375
 ```
 
@@ -312,6 +312,15 @@ From this point forwards all of our Docker commands will be run
 against the Swarm cluster. If you use `docker ps` you will be able to
 see which agent node they are deployed to.
 
+## Confguring the Swarm
+
+```
+docker-compose up -d
+```
+
+```
+```
+
 # Autoscaling Containers
 
 We don't really want to be scaling the application up manually like
@@ -353,13 +362,18 @@ for the queue to grow.
 ```
 docker run -d rgardler/acs-load http://172.17.0.1:5000/enqueue -t 100 -l 100 -d "queue=rgbuildacsde\
 mo&message=CORRECT%20-%20Question_1 - Answer_A" &
-docker run -d rgardler/acs-load http://172.17.0.1:5000/enqueue -t 100 -l 5 -d "queue=rgbuildacsdemo\
+docker run -d rgardler/acs-load http://172.17.0.1:5000/enqueue -t 100 -l 100 -d "queue=rgbuildacsdemo\
 &message=INCORRECT%20-%20Question_1 - Answer_B" &
-docker run -d rgardler/acs-load http://172.17.0.1:5000/enqueue -t 100 -l 7 -d "queue=rgbuildacsdemo\
+docker run -d rgardler/acs-load http://172.17.0.1:5000/enqueue -t 100 -l 70 -d "queue=rgbuildacsdemo\
 &message=INCORRECT%20-%20Question_1 - Answer_C" &
-docker run -d rgardler/acs-load http://172.17.0.1:5000/enqueue -t 100 -l 1 -d "queue=rgbuildacsdemo\
+docker run -d rgardler/acs-load http://172.17.0.1:5000/enqueue -t 100 -l 100 -d "queue=rgbuildacsdemo\
 &message=INCORRECT%20-%20Question_1 - Answer_D" &
-watch ./autoscale.sh
+```
+
+No start the autoscale algorithm.
+
+```
+./autoscale.sh
 ```
 
 Results:
@@ -429,7 +443,7 @@ small number of parameters for the ARM template:
       "value": "acsmesosbuild2016"
     },
     "agentCount": {
-      "value": 3
+      "value": 1
     },
     "linuxAdminUsername": {
       "value": "azureuser"
