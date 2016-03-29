@@ -49,13 +49,16 @@ clear
 
 for i in $(seq "$CONTAINER_SCALE_REPEATS")
 do
-    LENGTH=$(docker run -i --env-file env.conf rgardler/acs-logging-test-cli length)
+    echo "Queue Status"
+    echo "============"
 
-    echo ""
+    LENGTH=$(docker run -i --env-file env.conf rgardler/acs-logging-test-cli length)
 
     if [ "$LENGTH" -gt 50 ]
     then
 	echo "Queue is too long ($LENGTH)"
+	echo ""
+
 	NUM_ANALYZERS=$(expr $LENGTH / 10)
 	if [ "$NUM_ANALYZERS" -gt "$MAX_ANALYZERS" ]
 	then
@@ -63,6 +66,7 @@ do
 	fi
 	echo "docker-compose scale analyzer=$NUM_ANALYZERS"
 	docker-compose scale analyzer=$NUM_ANALYZERS
+	echo ""
     else 
 	echo "Queue is an acceptable length ($length)"
     fi
