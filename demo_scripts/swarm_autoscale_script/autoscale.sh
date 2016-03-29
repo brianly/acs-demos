@@ -47,12 +47,12 @@ echo "Notice how the queue is growing, we don't have enough analyzers to keep up
 echo "Lets implement a scaling algorithm, this is a simpl shell script we will run periodically"
 echo ""
 cat << EOF
-    NUM_ANALYZERS=$(expr $LENGTH / 10)
-    if [ "$NUM_ANALYZERS" -gt "$MAX_ANALYZERS" ]
+    NUM_ANALYZERS=\$(expr \$LENGTH / 10)
+    if [ "\$NUM_ANALYZERS" -gt "\$MAX_ANALYZERS" ]
     then
-	NUM_ANALYZERS=$MAX_ANALYZERS
+	NUM_ANALYZERS=\$MAX_ANALYZERS
     fi
-    docker-compose scale analyzer=$NUM_ANALYZERS
+    docker-compose scale analyzer=\$NUM_ANALYZERS
 EOF
 echo ""
 read -p "Press [Enter] key to turn on an auto-scaling algorithm"
