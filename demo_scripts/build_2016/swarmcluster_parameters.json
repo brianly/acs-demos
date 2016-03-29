@@ -3,7 +3,7 @@
   "contentVersion": "1.0.0.0",
   "parameters": {
     "dnsNamePrefix": {
-      "value": "acsbuild2016"
+      "value": "acsswarmbuild2016"
     },
     "agentCount": {
       "value": 3
