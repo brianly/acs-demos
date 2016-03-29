@@ -9,33 +9,9 @@ summary data to a table.
 
 `cd acs-demos/demo-scripts/swarm-autoscale-script`
 
-Create a file called `env.conf` and add the following text to it (note
-you need to provide values for any of the blank items).
+`cp env.conf.tmpl env.conf`
 
-```
-# How many actions to simulate (0 means until stopped)
-SIMULATION_ACTIONS=0
-
-# How many seconds to delay between simulated actions
-SIMULATION_DELAY=1
-
-# Which queue type to use (currently only AzureStorageQueue is supported)
-AZURE_LOGGING_QUEUE_TYPE=AzureStorageQueue
-
-# Queue name (if using Azure Queue)
-AZURE_STORAGE_QUEUE_NAME=
-AZURE_STORAGE_SUMMARY_TABLE_NAME=
-
-# Azure Storage Account Details
-AZURE_STORAGE_ACCOUNT_NAME=
-AZURE_STORAGE_ACCOUNT_KEY=
-
-SLACK_WEBHOOK=https://hooks.slack.com/services/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$    
-
-# Analyzer behaviour
-ANALYZER_KEEP_RUNNING=False
-ANALYZER_SLEEP_TIME=0
-```
+edit `env.conf` and add values for any of the blank parameters.
 
 ## Create a Swarm ACS cluster and verify connection
 
